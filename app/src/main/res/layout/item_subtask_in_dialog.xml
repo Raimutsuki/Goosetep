@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:layout_marginTop="8dp">
+
+    <View
+        android:id="@+id/subtaskCircle"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:background="@drawable/circle_empty" />
+
+    <EditText
+        android:id="@+id/editSubtaskTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="12dp"
+        android:hint="Подзадача..."
+        android:textColor="#FFFFFF"
+        android:textColorHint="#888888"
+        android:padding="8dp"
+        android:background="@drawable/edit_text_background" />
+
+    <ImageView
+        android:id="@+id/buttonRemoveSubtask"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/close_symbol"
+        android:contentDescription="Удалить подзадачу"
+        android:layout_marginStart="10dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackgroundBorderless" />
+
+</LinearLayout>
