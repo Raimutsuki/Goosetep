@@ -1,4 +1,4 @@
-package com.productivniye.myapplication
+package com.productivniye.goosetep
 
 import android.os.Bundle
 import android.widget.ImageView

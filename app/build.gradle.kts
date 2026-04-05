@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "com.productivniye.myapplication"
+    namespace = "com.productivniye.goosetep"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -11,7 +11,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.productivniye.myapplication"
+        applicationId = "com.productivniye.goosetep"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
