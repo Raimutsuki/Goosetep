@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/task_background"
+    android:padding="12dp"
+    android:layout_marginBottom="8dp">
+
+    <!-- Заголовок задачи (строка ввода + кнопка удаления) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <EditText
+            android:id="@+id/editTaskTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Название задачи..."
+            android:textColor="#FFFFFF"
+            android:textColorHint="#888888"
+            android:padding="8dp"
+            android:background="@drawable/edit_text_background" />
+
+        <ImageView
+            android:id="@+id/buttonRemoveTask"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/close_symbol"
+            android:contentDescription="Удалить задачу"
+            android:layout_marginStart="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless" />
+
+    </LinearLayout>
+
+    <!-- Контейнер для подзадач этой задачи -->
+    <LinearLayout
+        android:id="@+id/subtasksContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="16dp" />
+
+    <!-- Кнопка добавления подзадачи (внизу) -->
+    <Button
+        android:id="@+id/buttonAddSubtask"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="+ Добавить подзадачу"
+        android:backgroundTint="#444444"
+        android:textColor="#FFFFFF"
+        android:textSize="12sp"
+        android:layout_marginTop="8dp" />
+
+</LinearLayout>

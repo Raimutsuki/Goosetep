@@ -4,13 +4,15 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:layout_marginTop="16dp">
+    android:layout_marginTop="4dp">
 
-    <View
-        android:id="@+id/subtaskCircle"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:background="@drawable/circle_empty" />
+    <CheckBox
+        android:id="@+id/subtaskCheckbox"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:buttonTint="#FF6200EE"
+        android:minWidth="0dp"
+        android:minHeight="0dp" />
 
     <TextView
         android:id="@+id/subtaskTitle"
