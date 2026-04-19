@@ -19,5 +19,7 @@ data class Task(
 data class Goal(
     val id: Int,
     var title: String,
-    var tasks: MutableList<Task> = mutableListOf()
+    var tasks: MutableList<Task> = mutableListOf(),
+    var subtasks: MutableList<Subtask> = mutableListOf(),
+    var isExpanded: Boolean = true
 )

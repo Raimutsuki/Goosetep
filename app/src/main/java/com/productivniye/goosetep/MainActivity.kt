@@ -1,5 +1,6 @@
 package com.productivniye.goosetep
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -7,9 +8,9 @@ import android.widget.CheckBox
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
+import android.widget.ProgressBar
+import android.animation.ObjectAnimator
 
 class MainActivity : AppCompatActivity(), OnGoalAddedListener {
 
@@ -30,56 +31,84 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
     }
 
     override fun onGoalAdded(goal: Goal) {
-        val goalView = LinearLayout(this)
-        goalView.orientation = LinearLayout.VERTICAL
-        goalView.setPadding(0, 16, 0, 16)
+        val goalView = LayoutInflater.from(this)
+            .inflate(R.layout.item_goal, goalsContainer, false)
 
-        val titleView = TextView(this)
-        titleView.text = goal.title
-        titleView.textSize = 20f
-        titleView.setTextColor(ContextCompat.getColor(this, android.R.color.white))
-        titleView.setTypeface(null, android.graphics.Typeface.BOLD)
-        goalView.addView(titleView)
+        val goalTitle = goalView.findViewById<TextView>(R.id.goalTitle)
+        val expandIcon = goalView.findViewById<ImageView>(R.id.expandIcon)
+        val tasksContainer = goalView.findViewById<LinearLayout>(R.id.subtasksContainer)
+        val goalHeader = goalView.findViewById<LinearLayout>(R.id.goalHeader)
+        val progressBar = goalView.findViewById<ProgressBar>(R.id.progressBar)
+        val progressText = goalView.findViewById<TextView>(R.id.progressText)
 
-        val tasksContainer = LinearLayout(this)
-        tasksContainer.orientation = LinearLayout.VERTICAL
-        tasksContainer.setPadding(32, 8, 0, 0)
+        goalTitle.text = goal.title
 
+        // Функция обновления прогресса
+        fun updateProgress() {
+            var total = 0
+            var completed = 0
+            for (task in goal.tasks) {
+                for (subtask in task.subtasks) {
+                    total++
+                    if (subtask.isCompleted) completed++
+                }
+            }
+            val progress = if (total > 0) (completed * 100 / total) else 0
+            animateProgress(progressBar, progress)
+            progressText.text = "$completed/$total"
+        }
+
+        // Очищаем контейнер
+        tasksContainer.removeAllViews()
+
+        // Проходим по всем задачам
         for (task in goal.tasks) {
-            addTaskDisplay(tasksContainer, task)
+            val taskView = LayoutInflater.from(this)
+                .inflate(R.layout.item_task_display, tasksContainer, false)
+
+            val taskTitle = taskView.findViewById<TextView>(R.id.taskTitle)
+            val subtasksContainer = taskView.findViewById<LinearLayout>(R.id.subtasksContainer)
+
+            taskTitle.text = task.title
+
+            // Добавляем подзадачи
+            for (subtask in task.subtasks) {
+                addSubtaskDisplay(subtasksContainer, subtask) { _ ->
+                    updateProgress()
+                }
+            }
+
+            tasksContainer.addView(taskView)
         }
 
-        goalView.addView(tasksContainer)
+        // Обновляем прогресс после добавления всех подзадач
+        updateProgress()
+
+        // Функция сворачивания/разворачивания
+        fun updateUI() {
+            if (goal.isExpanded) {
+                tasksContainer.visibility = View.VISIBLE
+                expandIcon.animate().rotation(0f).setDuration(200).start()
+            } else {
+                tasksContainer.visibility = View.GONE
+                expandIcon.animate().rotation(-90f).setDuration(200).start()
+            }
+        }
+
+        goalHeader.setOnClickListener {
+            goal.isExpanded = !goal.isExpanded
+            updateUI()
+        }
+
+        updateUI()
         goalsContainer.addView(goalView)
-
-        Toast.makeText(this, "Цель добавлена: ${goal.title}", Toast.LENGTH_SHORT).show()
     }
 
-    private fun addTaskDisplay(container: LinearLayout, task: Task) {
-        val taskView = LinearLayout(this)
-        taskView.orientation = LinearLayout.VERTICAL
-        taskView.setPadding(0, 8, 0, 8)
-
-        val taskTitle = TextView(this)
-        taskTitle.text = task.title
-        taskTitle.textSize = 16f
-        taskTitle.setTextColor(ContextCompat.getColor(this, android.R.color.white))
-        taskTitle.setTypeface(null, android.graphics.Typeface.BOLD)
-        taskView.addView(taskTitle)
-
-        val subtasksContainer = LinearLayout(this)
-        subtasksContainer.orientation = LinearLayout.VERTICAL
-        subtasksContainer.setPadding(24, 4, 0, 0)
-
-        for (subtask in task.subtasks) {
-            addSubtaskDisplay(subtasksContainer, subtask)
-        }
-
-        taskView.addView(subtasksContainer)
-        container.addView(taskView)
-    }
-
-    private fun addSubtaskDisplay(container: LinearLayout, subtask: Subtask) {
+    private fun addSubtaskDisplay(
+        container: LinearLayout,
+        subtask: Subtask,
+        onCheckedChangeListener: ((Boolean) -> Unit)? = null  // ← один параметр Boolean
+    ) {
         val inflater = LayoutInflater.from(this)
         val subtaskView = inflater.inflate(R.layout.item_subtask_display, container, false)
 
@@ -94,6 +123,7 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
         checkbox.setOnCheckedChangeListener { _, isChecked ->
             subtask.isCompleted = isChecked
             updateSubtaskStyle(title, isChecked)
+            onCheckedChangeListener?.invoke(isChecked)  // ← передаём только isChecked
         }
 
         container.addView(subtaskView)
@@ -106,6 +136,13 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
         } else {
             title.paintFlags = title.paintFlags and android.graphics.Paint.STRIKE_THRU_TEXT_FLAG.inv()
             title.alpha = 1.0f
+        }
+    }
+
+    private fun animateProgress(progressBar: ProgressBar, targetProgress: Int) {
+        ObjectAnimator.ofInt(progressBar, "progress", targetProgress).apply {
+            duration = 300  // миллисекунды
+            start()
         }
     }
 }
