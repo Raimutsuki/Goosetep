@@ -10,6 +10,8 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import android.content.Intent
+import android.widget.Button
 
 class MainActivity : AppCompatActivity(), OnGoalAddedListener {
 
@@ -27,6 +29,14 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
             val dialog = AddGoalDialog()
             dialog.show(supportFragmentManager, "AddGoalDialog")
         }
+
+        // МАГАЗИН
+        val btnShop = findViewById<Button>(R.id.btnShop)
+        btnShop.setOnClickListener {
+            val intent = Intent(this, ShopActivity::class.java)
+            startActivity(intent)
+        }
+
     }
 
     override fun onGoalAdded(goal: Goal) {
