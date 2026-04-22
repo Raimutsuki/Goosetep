@@ -15,12 +15,17 @@ import android.animation.ObjectAnimator
 class MainActivity : AppCompatActivity(), OnGoalAddedListener {
 
     private lateinit var goalsContainer: LinearLayout
+    private lateinit var overallProgressBar: ProgressBar
+    private lateinit var overallProgressText: TextView
+    private val goals = mutableListOf<Goal>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         goalsContainer = findViewById(R.id.goalsContainer)
+        overallProgressBar = findViewById(R.id.overallProgressBar)
+        overallProgressText = findViewById(R.id.overallProgressText)
 
         val plusBut = findViewById<ImageView>(R.id.plusBut)
 
@@ -31,6 +36,8 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
     }
 
     override fun onGoalAdded(goal: Goal) {
+        goals.add(goal)
+
         val goalView = LayoutInflater.from(this)
             .inflate(R.layout.item_goal, goalsContainer, false)
 
@@ -43,8 +50,8 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
 
         goalTitle.text = goal.title
 
-        // Функция обновления прогресса
-        fun updateProgress() {
+        // Функция обновления прогресса цели
+        fun updateGoalProgress() {
             var total = 0
             var completed = 0
             for (task in goal.tasks) {
@@ -56,6 +63,9 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
             val progress = if (total > 0) (completed * 100 / total) else 0
             animateProgress(progressBar, progress)
             progressText.text = "$completed/$total"
+
+            // Обновляем общий прогресс
+            updateOverallProgress()
         }
 
         // Очищаем контейнер
@@ -74,7 +84,7 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
             // Добавляем подзадачи
             for (subtask in task.subtasks) {
                 addSubtaskDisplay(subtasksContainer, subtask) { _ ->
-                    updateProgress()
+                    updateGoalProgress()
                 }
             }
 
@@ -82,7 +92,7 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
         }
 
         // Обновляем прогресс после добавления всех подзадач
-        updateProgress()
+        updateGoalProgress()
 
         // Функция сворачивания/разворачивания
         fun updateUI() {
@@ -102,12 +112,33 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
 
         updateUI()
         goalsContainer.addView(goalView)
+
+        // Обновляем общий прогресс при добавлении новой цели
+        updateOverallProgress()
+    }
+
+    private fun updateOverallProgress() {
+        var totalSubtasks = 0
+        var completedSubtasks = 0
+
+        for (goal in goals) {
+            for (task in goal.tasks) {
+                for (subtask in task.subtasks) {
+                    totalSubtasks++
+                    if (subtask.isCompleted) completedSubtasks++
+                }
+            }
+        }
+
+        val progress = if (totalSubtasks > 0) (completedSubtasks * 100 / totalSubtasks) else 0
+        animateProgress(overallProgressBar, progress)
+        overallProgressText.text = "$completedSubtasks/$totalSubtasks"
     }
 
     private fun addSubtaskDisplay(
         container: LinearLayout,
         subtask: Subtask,
-        onCheckedChangeListener: ((Boolean) -> Unit)? = null  // ← один параметр Boolean
+        onCheckedChangeListener: ((Boolean) -> Unit)? = null
     ) {
         val inflater = LayoutInflater.from(this)
         val subtaskView = inflater.inflate(R.layout.item_subtask_display, container, false)
@@ -123,7 +154,7 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
         checkbox.setOnCheckedChangeListener { _, isChecked ->
             subtask.isCompleted = isChecked
             updateSubtaskStyle(title, isChecked)
-            onCheckedChangeListener?.invoke(isChecked)  // ← передаём только isChecked
+            onCheckedChangeListener?.invoke(isChecked)
         }
 
         container.addView(subtaskView)
@@ -141,7 +172,7 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
 
     private fun animateProgress(progressBar: ProgressBar, targetProgress: Int) {
         ObjectAnimator.ofInt(progressBar, "progress", targetProgress).apply {
-            duration = 300  // миллисекунды
+            duration = 300
             start()
         }
     }
