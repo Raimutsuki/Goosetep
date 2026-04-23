@@ -18,7 +18,8 @@
             android:textSize="28sp"
             android:textStyle="bold"
             android:textColor="?android:attr/textColorPrimary"
-            android:layout_marginBottom="24dp"/>
+            android:layout_marginBottom="24dp"
+            android:layout_gravity="center_horizontal"/>
 
 
         <!-- Аккаунт -->
@@ -72,12 +73,32 @@
             android:padding="16dp"
             android:layout_marginBottom="12dp">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="user@example.com"
-                android:textSize="16sp"
-                android:textColor="?android:attr/textColorSecondary"/>
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvAccountEmail"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="user@example.com"
+                    android:textSize="16sp"
+                    android:textColor="?android:attr/textColorSecondary"/>
+
+                <!-- Кнопка редактирования -->
+                <ImageView
+                    android:id="@+id/btnEditAccount"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@drawable/ic_edit"
+                    android:padding="6dp"
+                    android:contentDescription="Edit"
+                    android:clickable="true"
+                    android:focusable="true"/>
+            </LinearLayout>
         </LinearLayout>
 
         <!-- Тема -->
@@ -310,8 +331,8 @@
         <!-- Иконка шестерёнки внизу -->
         <ImageView
             android:id="@+id/ivSettingsIcon"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
             android:layout_gravity="center_horizontal"
             android:src="@drawable/ic_settings"
             android:padding="12dp"
