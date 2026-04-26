@@ -11,6 +11,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import android.widget.ProgressBar
 import android.animation.ObjectAnimator
+import android.content.Intent
 
 class MainActivity : AppCompatActivity(), OnGoalAddedListener {
 
@@ -32,6 +33,12 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
         plusBut.setOnClickListener {
             val dialog = AddGoalDialog()
             dialog.show(supportFragmentManager, "AddGoalDialog")
+        }
+
+        val settingsButton = findViewById<ImageView>(R.id.btn_settings)
+
+        settingsButton.setOnClickListener {
+            openSettings()  // вызываем функцию
         }
     }
 
@@ -133,6 +140,11 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
         val progress = if (totalSubtasks > 0) (completedSubtasks * 100 / totalSubtasks) else 0
         animateProgress(overallProgressBar, progress)
         overallProgressText.text = "$completedSubtasks/$totalSubtasks"
+    }
+
+    private fun openSettings() {
+        val intent = Intent(this, SettingsActivity::class.java)
+        startActivity(intent)
     }
 
     private fun addSubtaskDisplay(
