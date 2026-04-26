@@ -12,6 +12,8 @@ import androidx.appcompat.app.AppCompatActivity
 import android.widget.ProgressBar
 import android.animation.ObjectAnimator
 import android.content.Intent
+import androidx.core.content.ContextCompat
+import android.widget.Button
 
 class MainActivity : AppCompatActivity(), OnGoalAddedListener {
 
@@ -34,6 +36,14 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
             val dialog = AddGoalDialog()
             dialog.show(supportFragmentManager, "AddGoalDialog")
         }
+
+        // МАГАЗИН
+        val btnShop = findViewById<Button>(R.id.btnShop)
+        btnShop.setOnClickListener {
+            val intent = Intent(this, ShopActivity::class.java)
+            startActivity(intent)
+        }
+
 
         val settingsButton = findViewById<ImageView>(R.id.btn_settings)
 
