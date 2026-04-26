@@ -12,7 +12,6 @@ import androidx.appcompat.app.AppCompatActivity
 import android.widget.ProgressBar
 import android.animation.ObjectAnimator
 import android.content.Intent
-import androidx.core.content.ContextCompat
 import android.widget.Button
 
 class MainActivity : AppCompatActivity(), OnGoalAddedListener {
@@ -68,6 +67,7 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
         goalTitle.text = goal.title
 
         // Функция обновления прогресса цели
+        @SuppressLint("SetTextI18n")
         fun updateGoalProgress() {
             var total = 0
             var completed = 0
@@ -134,6 +134,7 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
         updateOverallProgress()
     }
 
+    @SuppressLint("SetTextI18n")
     private fun updateOverallProgress() {
         var totalSubtasks = 0
         var completedSubtasks = 0

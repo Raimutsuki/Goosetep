@@ -1,5 +1,6 @@
 package com.productivniye.goosetep
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
@@ -27,6 +28,7 @@ class ShopActivity : AppCompatActivity() {
     private lateinit var myAdapter: MyItemsAdapter
     private lateinit var shopAdapter: ShopAdapter
 
+    @SuppressLint("NotifyDataSetChanged")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_shop)
@@ -34,7 +36,7 @@ class ShopActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.tv_coins).text = coins.toString()
 
         // === ТОВАРЫ ===
-        shopItems.add(ShopItem(1, "Гусь", "🪿", 0, true, true)) // выбран по умолчанию
+        shopItems.add(ShopItem(1, "Гусь", "🪿", 0, isOwned = true, isSelected = true)) // выбран по умолчанию
         shopItems.add(ShopItem(2, "Жабка", "🐸", 50))
         shopItems.add(ShopItem(4, "Кот", "🐱", 30))
         shopItems.add(ShopItem(6, "Птичка", "🐦", 25))
@@ -74,6 +76,7 @@ class ShopActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnBack).setOnClickListener { finish() }
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     private fun showBuyDialog(item: ShopItem) {
         AlertDialog.Builder(this)
             .setTitle("Купить предмет?")
@@ -158,6 +161,7 @@ class ShopAdapter(
 
     override fun getItemCount() = items.size
 
+    @SuppressLint("SetTextI18n")
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = items[position]
         holder.emoji.text = item.emoji
