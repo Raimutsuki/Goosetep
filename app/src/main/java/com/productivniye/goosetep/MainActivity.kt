@@ -13,6 +13,7 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.animation.ObjectAnimator
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.google.gson.Gson
@@ -20,14 +21,20 @@ import com.google.gson.reflect.TypeToken
 
 class MainActivity : AppCompatActivity(), OnGoalAddedListener {
 
+    // Views
     private lateinit var goalsContainer: LinearLayout
     private lateinit var overallProgressBar: ProgressBar
     private lateinit var overallProgressText: TextView
     private lateinit var selectedEmojiView: TextView
+    private lateinit var levelProgressBar: ProgressBar
+    private lateinit var tvLevel: TextView
+    private lateinit var tvXp: TextView
 
     private val goals = mutableListOf<Goal>()
     private lateinit var prefs: SharedPreferences
     private val gson = Gson()
+
+    private var playerProgress = PlayerProgress()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,10 +42,14 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
 
         prefs = getSharedPreferences("app_prefs", MODE_PRIVATE)
 
+        // Инициализация View
         goalsContainer = findViewById(R.id.goalsContainer)
         overallProgressBar = findViewById(R.id.overallProgressBar)
         overallProgressText = findViewById(R.id.overallProgressText)
         selectedEmojiView = findViewById(R.id.tv_selected_emoji)
+        levelProgressBar = findViewById(R.id.levelProgressBar)
+        tvLevel = findViewById(R.id.tv_level)
+        tvXp = findViewById(R.id.tv_xp)
 
         val plusBut = findViewById<ImageView>(R.id.plusBut)
 
@@ -58,8 +69,42 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
             openSettings()
         }
 
+        loadProgress()
         loadGoals()
         loadSelectedEmoji()
+        updateLevelUI()
+    }
+
+    // ===================== ПРОГРЕСС ИГРОКА =====================
+    private fun loadProgress() {
+        val json = prefs.getString("player_progress", null)
+        if (json != null) {
+            try {
+                playerProgress = gson.fromJson(json, PlayerProgress::class.java)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    private fun saveProgress() {
+        val json = gson.toJson(playerProgress)
+        prefs.edit().putString("player_progress", json).apply()
+    }
+
+    private fun addCoins(amount: Int) {
+        playerProgress.coins += amount
+        saveProgress()
+    }
+
+    private fun updateLevelUI() {
+        tvLevel.text = "Уровень ${playerProgress.level}"
+        val current = playerProgress.totalXP
+        val needed = playerProgress.getXPForNextLevel()
+        val progress = if (needed > 0) (current * 100 / needed) else 0
+
+        levelProgressBar.progress = progress
+        tvXp.text = "$current / $needed XP"
     }
 
     // ===================== ЦЕЛИ =====================
@@ -98,7 +143,7 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
         val goalHeader = goalView.findViewById<LinearLayout>(R.id.goalHeader)
         val progressBar = goalView.findViewById<ProgressBar>(R.id.progressBar)
         val progressText = goalView.findViewById<TextView>(R.id.progressText)
-        val btnDelete = goalView.findViewById<ImageView>(R.id.btnDeleteGoal)  // ← НОВОЕ
+        val btnDelete = goalView.findViewById<ImageView>(R.id.btnDeleteGoal)
 
         goalTitle.text = goal.title
 
@@ -112,11 +157,11 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
                     if (subtask.isCompleted) completed++
                 }
             }
+
             val progress = if (total > 0) (completed * 100 / total) else 0
             animateProgress(progressBar, progress)
             progressText.text = "$completed/$total"
 
-            // Показываем кнопку удаления только если цель полностью выполнена
             btnDelete.visibility = if (completed == total && total > 0) View.VISIBLE else View.GONE
 
             updateOverallProgress()
@@ -145,7 +190,6 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
 
         updateGoalProgress()
 
-        // Кнопка удаления
         btnDelete.setOnClickListener {
             if (isGoalFullyCompleted(goal)) {
                 showDeleteConfirmation(goal, goalView)
@@ -177,13 +221,13 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
                 if (!subtask.isCompleted) return false
             }
         }
-        return goal.tasks.isNotEmpty() // хотя бы одна подзадача должна быть
+        return goal.tasks.isNotEmpty()
     }
 
     private fun showDeleteConfirmation(goal: Goal, goalView: View) {
         AlertDialog.Builder(this)
             .setTitle("Удалить цель?")
-            .setMessage("Вы уверены, что хотите удалить «${goal.title}»?\n\nВсе подзадачи выполнены.")
+            .setMessage("Удалить «${goal.title}»?")
             .setPositiveButton("Удалить") { _, _ ->
                 goals.remove(goal)
                 goalsContainer.removeView(goalView)
@@ -220,13 +264,6 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
         overallProgressText.text = "$completedSubtasks/$totalSubtasks"
     }
 
-    // ... (остальные функции: openSettings, addSubtaskDisplay, updateSubtaskStyle, animateProgress, loadSelectedEmoji, onResume, onPause — остаются без изменений)
-
-    private fun openSettings() {
-        val intent = Intent(this, SettingsActivity::class.java)
-        startActivity(intent)
-    }
-
     private fun addSubtaskDisplay(
         container: LinearLayout,
         subtask: Subtask,
@@ -244,8 +281,24 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
         updateSubtaskStyle(title, subtask.isCompleted)
 
         checkbox.setOnCheckedChangeListener { _, isChecked ->
+            val wasCompleted = subtask.isCompleted
             subtask.isCompleted = isChecked
             updateSubtaskStyle(title, isChecked)
+
+            if (isChecked && !wasCompleted) {
+                val levelUp = playerProgress.addXP(1)
+                addCoins(1)
+
+                if (levelUp) {
+                    addCoins(50)
+                    Toast.makeText(this, "🎉 Новый уровень ${playerProgress.level}! +50 монет", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(this, "+1 XP +1 💰", Toast.LENGTH_SHORT).show()
+                }
+                updateLevelUI()
+                saveProgress()
+            }
+
             onCheckedChangeListener?.invoke(isChecked)
         }
 
@@ -295,6 +348,11 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
         selectedEmojiView.text = emoji
     }
 
+    private fun openSettings() {
+        val intent = Intent(this, SettingsActivity::class.java)
+        startActivity(intent)
+    }
+
     override fun onResume() {
         super.onResume()
         loadSelectedEmoji()
@@ -303,5 +361,6 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
     override fun onPause() {
         super.onPause()
         saveGoals()
+        saveProgress()
     }
 }

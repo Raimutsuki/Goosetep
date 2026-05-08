@@ -12,7 +12,8 @@ data class Task(
     val id: Int,
     var title: String,
     var subtasks: MutableList<Subtask> = mutableListOf(),
-    var isExpanded: Boolean = true  // для сворачивания/разворачивания
+    var isExpanded: Boolean = true,  // для сворачивания/разворачивания
+    var completionRewardGiven: Boolean = false
 )
 
 // Цель (содержит список задач)
@@ -21,7 +22,9 @@ data class Goal(
     var title: String,
     var tasks: MutableList<Task> = mutableListOf(),
     var subtasks: MutableList<Subtask> = mutableListOf(),
-    var isExpanded: Boolean = true
+    var isExpanded: Boolean = true,
+    var completionRewardGiven: Boolean = false
+
 )
 
 // ===================== ДАННЫЕ МАГАЗИНА =====================
@@ -30,3 +33,20 @@ data class ShopData(
     val ownedIds: MutableSet<Int> = mutableSetOf(),
     val selectedId: Int = 1
 )
+
+// ===================== ПРОГРЕСС ИГРОКА =====================
+data class PlayerProgress(
+    var totalXP: Int = 0,
+    var level: Int = 1,
+    var coins: Int = 100
+) {
+    fun getXPForNextLevel(): Int = 50 * level + 50
+
+    fun addXP(amount: Int): Boolean {
+        totalXP += amount
+        return if (totalXP >= getXPForNextLevel()) {
+            level++
+            true
+        } else false
+    }
+}

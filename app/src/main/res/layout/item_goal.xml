@@ -34,7 +34,7 @@
             android:layout_width="28dp"
             android:layout_height="28dp"
             android:src="@android:drawable/ic_delete"
-            app:tint="#FF6200EE"
+            app:tint="#CCCCCC"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:clickable="true"
             android:focusable="true"
