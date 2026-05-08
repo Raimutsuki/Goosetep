@@ -27,8 +27,9 @@
         android:orientation="horizontal"
         android:gravity="center_vertical">
 
-        <!-- Эмодзи гуся -->
+        <!-- Выбранная иконка из магазина -->
         <TextView
+            android:id="@+id/tv_selected_emoji"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="🪿"
@@ -144,4 +145,5 @@
         android:layout_alignParentBottom="true"
         android:layout_alignParentStart="true"
         android:layout_margin="50dp" />
+
 </RelativeLayout>

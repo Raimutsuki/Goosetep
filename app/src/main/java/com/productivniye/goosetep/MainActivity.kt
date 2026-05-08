@@ -1,33 +1,43 @@
 package com.productivniye.goosetep
 
 import android.annotation.SuppressLint
+import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.Button
 import android.widget.CheckBox
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
 import android.widget.ProgressBar
+import android.widget.TextView
 import android.animation.ObjectAnimator
-import android.content.Intent
-import android.widget.Button
+import androidx.appcompat.app.AppCompatActivity
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 
 class MainActivity : AppCompatActivity(), OnGoalAddedListener {
 
     private lateinit var goalsContainer: LinearLayout
     private lateinit var overallProgressBar: ProgressBar
     private lateinit var overallProgressText: TextView
+    private lateinit var selectedEmojiView: TextView
+
     private val goals = mutableListOf<Goal>()
+    private lateinit var prefs: SharedPreferences
+    private val gson = Gson()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        prefs = getSharedPreferences("app_prefs", MODE_PRIVATE)
+
         goalsContainer = findViewById(R.id.goalsContainer)
         overallProgressBar = findViewById(R.id.overallProgressBar)
         overallProgressText = findViewById(R.id.overallProgressText)
+        selectedEmojiView = findViewById(R.id.tv_selected_emoji)
 
         val plusBut = findViewById<ImageView>(R.id.plusBut)
 
@@ -36,24 +46,48 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
             dialog.show(supportFragmentManager, "AddGoalDialog")
         }
 
-        // МАГАЗИН
         val btnShop = findViewById<Button>(R.id.btnShop)
         btnShop.setOnClickListener {
             val intent = Intent(this, ShopActivity::class.java)
             startActivity(intent)
         }
 
-
         val settingsButton = findViewById<ImageView>(R.id.btn_settings)
-
         settingsButton.setOnClickListener {
-            openSettings()  // вызываем функцию
+            openSettings()
+        }
+
+        loadGoals()
+        loadSelectedEmoji()
+    }
+
+    // ===================== ЦЕЛИ =====================
+    private fun loadGoals() {
+        val json = prefs.getString("goals", null)
+        if (json != null) {
+            try {
+                val type = object : TypeToken<MutableList<Goal>>() {}.type
+                val savedGoals: MutableList<Goal> = gson.fromJson(json, type)
+                goals.clear()
+                goals.addAll(savedGoals)
+
+                goalsContainer.removeAllViews()
+                for (goal in goals) {
+                    addGoalToUI(goal)
+                }
+                updateOverallProgress()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
-    override fun onGoalAdded(goal: Goal) {
-        goals.add(goal)
+    private fun saveGoals() {
+        val json = gson.toJson(goals)
+        prefs.edit().putString("goals", json).apply()
+    }
 
+    private fun addGoalToUI(goal: Goal) {
         val goalView = LayoutInflater.from(this)
             .inflate(R.layout.item_goal, goalsContainer, false)
 
@@ -66,7 +100,6 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
 
         goalTitle.text = goal.title
 
-        // Функция обновления прогресса цели
         @SuppressLint("SetTextI18n")
         fun updateGoalProgress() {
             var total = 0
@@ -81,14 +114,12 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
             animateProgress(progressBar, progress)
             progressText.text = "$completed/$total"
 
-            // Обновляем общий прогресс
             updateOverallProgress()
+            saveGoals()
         }
 
-        // Очищаем контейнер
         tasksContainer.removeAllViews()
 
-        // Проходим по всем задачам
         for (task in goal.tasks) {
             val taskView = LayoutInflater.from(this)
                 .inflate(R.layout.item_task_display, tasksContainer, false)
@@ -98,7 +129,6 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
 
             taskTitle.text = task.title
 
-            // Добавляем подзадачи
             for (subtask in task.subtasks) {
                 addSubtaskDisplay(subtasksContainer, subtask) { _ ->
                     updateGoalProgress()
@@ -108,10 +138,8 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
             tasksContainer.addView(taskView)
         }
 
-        // Обновляем прогресс после добавления всех подзадач
         updateGoalProgress()
 
-        // Функция сворачивания/разворачивания
         fun updateUI() {
             if (goal.isExpanded) {
                 tasksContainer.visibility = View.VISIBLE
@@ -129,8 +157,12 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
 
         updateUI()
         goalsContainer.addView(goalView)
+    }
 
-        // Обновляем общий прогресс при добавлении новой цели
+    override fun onGoalAdded(goal: Goal) {
+        goals.add(goal)
+        addGoalToUI(goal)
+        saveGoals()
         updateOverallProgress()
     }
 
@@ -198,5 +230,42 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
             duration = 300
             start()
         }
+    }
+
+    // ===================== МАГАЗИН =====================
+    private fun loadSelectedEmoji() {
+        val json = prefs.getString("shop_data", null)
+        val selectedId = if (json != null) {
+            try {
+                val type = object : TypeToken<ShopData>() {}.type
+                val data: ShopData = gson.fromJson(json, type)
+                data.selectedId
+            } catch (e: Exception) {
+                1
+            }
+        } else 1
+
+        val emoji = when (selectedId) {
+            1 -> "🪿"
+            2 -> "🐸"
+            4 -> "🐱"
+            6 -> "🐦"
+            8 -> "🐧"
+            10 -> "🐭"
+            14 -> "💩"
+            15 -> "🦖"
+            else -> "🪿"
+        }
+        selectedEmojiView.text = emoji
+    }
+
+    override fun onResume() {
+        super.onResume()
+        loadSelectedEmoji()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        saveGoals()
     }
 }

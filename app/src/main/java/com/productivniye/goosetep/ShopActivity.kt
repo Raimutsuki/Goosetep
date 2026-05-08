@@ -1,6 +1,7 @@
 package com.productivniye.goosetep
 
 import android.annotation.SuppressLint
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
@@ -9,6 +10,8 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 
 data class ShopItem(
     val id: Int,
@@ -27,34 +30,24 @@ class ShopActivity : AppCompatActivity() {
 
     private lateinit var myAdapter: MyItemsAdapter
     private lateinit var shopAdapter: ShopAdapter
+    private lateinit var prefs: SharedPreferences
+    private val gson = Gson()
 
     @SuppressLint("NotifyDataSetChanged")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_shop)
 
+        prefs = getSharedPreferences("app_prefs", MODE_PRIVATE) // теперь один prefs
+
+        loadShopState()
+
         findViewById<TextView>(R.id.tv_coins).text = coins.toString()
 
-        // === ТОВАРЫ ===
-        shopItems.add(ShopItem(1, "Гусь", "🪿", 0, isOwned = true, isSelected = true)) // выбран по умолчанию
-        shopItems.add(ShopItem(2, "Жабка", "🐸", 50))
-        shopItems.add(ShopItem(4, "Кот", "🐱", 30))
-        shopItems.add(ShopItem(6, "Птичка", "🐦", 25))
-        shopItems.add(ShopItem(8, "Пингвин", "🐧", 35))
-        shopItems.add(ShopItem(10, "Мышь", "🐭", 15))
-        shopItems.add(ShopItem(14, "Какашка", "💩", 5))
-        shopItems.add(ShopItem(15, "Динозавр", "🦖", 70))
+        initAllItems()
 
-        myItems.addAll(shopItems.filter { it.isOwned })
-        shopItems.removeAll { it.isOwned }
-
-        // Адаптеры
         myAdapter = MyItemsAdapter(myItems) { selected ->
-            // Снимаем выбор со всех предметов
-            myItems.forEach { it.isSelected = false }
-            selected.isSelected = true
-            myAdapter.notifyDataSetChanged()
-            Toast.makeText(this, "Выбран: ${selected.name}", Toast.LENGTH_SHORT).show()
+            selectItem(selected)
         }
 
         shopAdapter = ShopAdapter(shopItems) { item ->
@@ -72,8 +65,49 @@ class ShopActivity : AppCompatActivity() {
 
         findViewById<RecyclerView>(R.id.rv_shop_items).adapter = shopAdapter
 
-        // Кнопка назад
         findViewById<View>(R.id.btnBack).setOnClickListener { finish() }
+    }
+
+    private fun initAllItems() {
+        val allItems = listOf(
+            ShopItem(1, "Гусь", "🪿", 0, isOwned = true),
+            ShopItem(2, "Жабка", "🐸", 50),
+            ShopItem(4, "Кот", "🐱", 30),
+            ShopItem(6, "Птичка", "🐦", 25),
+            ShopItem(8, "Пингвин", "🐧", 35),
+            ShopItem(10, "Мышь", "🐭", 15),
+            ShopItem(14, "Какашка", "💩", 5),
+            ShopItem(15, "Динозавр", "🦖", 70)
+        )
+
+        myItems.clear()
+        shopItems.clear()
+
+        val savedData = loadSavedShopData()
+
+        for (item in allItems) {
+            val isOwned = item.id == 1 || savedData.ownedIds.contains(item.id)
+            if (isOwned) {
+                item.isOwned = true
+                item.isSelected = item.id == savedData.selectedId
+                myItems.add(item)
+            } else {
+                shopItems.add(item)
+            }
+        }
+
+        if (myItems.none { it.isSelected }) {
+            myItems.find { it.id == 1 }?.isSelected = true
+        }
+    }
+
+    private fun selectItem(selected: ShopItem) {
+        myItems.forEach { it.isSelected = false }
+        selected.isSelected = true
+        myAdapter.notifyDataSetChanged()
+
+        saveShopState()
+        Toast.makeText(this, "Выбран: ${selected.name}", Toast.LENGTH_SHORT).show()
     }
 
     @SuppressLint("NotifyDataSetChanged")
@@ -85,7 +119,6 @@ class ShopActivity : AppCompatActivity() {
                 coins -= item.price
                 item.isOwned = true
 
-                // Снимаем выбор с предыдущих и выбираем новый
                 myItems.forEach { it.isSelected = false }
                 item.isSelected = true
 
@@ -96,19 +129,56 @@ class ShopActivity : AppCompatActivity() {
                 shopAdapter.notifyDataSetChanged()
 
                 findViewById<TextView>(R.id.tv_coins).text = coins.toString()
+
+                saveShopState()
                 Toast.makeText(this, "✅ Куплено и выбрано!", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Отмена", null)
             .show()
     }
+
+    // ===================== JSON СОХРАНЕНИЕ =====================
+    private fun loadSavedShopData(): ShopData {
+        val json = prefs.getString("shop_data", null)
+        return if (json != null) {
+            val type = object : TypeToken<ShopData>() {}.type
+            gson.fromJson(json, type)
+        } else {
+            ShopData(coins = 100, selectedId = 1)
+        }
+    }
+
+    private fun loadShopState() {
+        val data = loadSavedShopData()
+        coins = data.coins
+    }
+
+    private fun saveShopState() {
+        val ownedIds = myItems.map { it.id }.toMutableSet()
+        val selectedId = myItems.find { it.isSelected }?.id ?: 1
+
+        val shopData = ShopData(
+            coins = coins,
+            ownedIds = ownedIds,
+            selectedId = selectedId
+        )
+
+        val json = gson.toJson(shopData)
+        prefs.edit().putString("shop_data", json).apply()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        saveShopState()
+    }
 }
 
-// ===================== АДАПТЕР "МОИ ПРЕДМЕТЫ" =====================
+// Адаптеры остаются без изменений
 class MyItemsAdapter(
     private val items: MutableList<ShopItem>,
     private val onSelect: (ShopItem) -> Unit
 ) : RecyclerView.Adapter<MyItemsAdapter.ViewHolder>() {
-
+    // ... (тот же код что был раньше)
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val emoji: TextView = view.findViewById(R.id.tv_emoji)
         val name: TextView = view.findViewById(R.id.tv_name)
@@ -129,19 +199,14 @@ class MyItemsAdapter(
         holder.name.text = item.name
         holder.status.text = if (item.isSelected) "✓ Выбран" else ""
 
-        // Цвет плитки
         holder.itemView.setBackgroundColor(
             if (item.isSelected) 0xFF6200EE.toInt() else 0xFF424242.toInt()
         )
 
-        // ←←← ЭТО БЫЛО ПРОПУЩЕНО
-        holder.itemView.setOnClickListener {
-            onSelect(item)
-        }
+        holder.itemView.setOnClickListener { onSelect(item) }
     }
 }
 
-// ===================== АДАПТЕР МАГАЗИНА =====================
 class ShopAdapter(
     private val items: MutableList<ShopItem>,
     private val onClick: (ShopItem) -> Unit
@@ -168,7 +233,7 @@ class ShopAdapter(
         holder.name.text = item.name
         holder.price.text = "${item.price} 💰"
 
-        holder.itemView.setBackgroundColor(0xFF424242.toInt()) // тёмный цвет
+        holder.itemView.setBackgroundColor(0xFF424242.toInt())
         holder.itemView.setOnClickListener { onClick(item) }
     }
 }

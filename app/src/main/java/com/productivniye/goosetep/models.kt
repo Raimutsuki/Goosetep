@@ -23,3 +23,10 @@ data class Goal(
     var subtasks: MutableList<Subtask> = mutableListOf(),
     var isExpanded: Boolean = true
 )
+
+// ===================== ДАННЫЕ МАГАЗИНА =====================
+data class ShopData(
+    val coins: Int = 100,
+    val ownedIds: MutableSet<Int> = mutableSetOf(),
+    val selectedId: Int = 1
+)
