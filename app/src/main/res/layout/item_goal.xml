@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@drawable/task_background"
     android:layout_marginBottom="12dp">
 
-    <!-- Заголовок цели (кликабельный) -->
+    <!-- Заголовок цели -->
     <LinearLayout
         android:id="@+id/goalHeader"
         android:layout_width="match_parent"
@@ -26,6 +27,20 @@
             android:textColor="#FF6200EE"
             android:textSize="18sp"
             android:textStyle="bold" />
+
+        <!-- Кнопка удаления -->
+        <ImageView
+            android:id="@+id/btnDeleteGoal"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@android:drawable/ic_delete"
+            app:tint="#FF6200EE"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:visibility="gone"
+            android:layout_marginEnd="8dp"
+            android:contentDescription="Удалить цель" />
 
         <ImageView
             android:id="@+id/expandIcon"

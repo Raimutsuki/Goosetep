@@ -13,6 +13,7 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.animation.ObjectAnimator
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -97,6 +98,7 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
         val goalHeader = goalView.findViewById<LinearLayout>(R.id.goalHeader)
         val progressBar = goalView.findViewById<ProgressBar>(R.id.progressBar)
         val progressText = goalView.findViewById<TextView>(R.id.progressText)
+        val btnDelete = goalView.findViewById<ImageView>(R.id.btnDeleteGoal)  // ← НОВОЕ
 
         goalTitle.text = goal.title
 
@@ -113,6 +115,9 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
             val progress = if (total > 0) (completed * 100 / total) else 0
             animateProgress(progressBar, progress)
             progressText.text = "$completed/$total"
+
+            // Показываем кнопку удаления только если цель полностью выполнена
+            btnDelete.visibility = if (completed == total && total > 0) View.VISIBLE else View.GONE
 
             updateOverallProgress()
             saveGoals()
@@ -140,6 +145,13 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
 
         updateGoalProgress()
 
+        // Кнопка удаления
+        btnDelete.setOnClickListener {
+            if (isGoalFullyCompleted(goal)) {
+                showDeleteConfirmation(goal, goalView)
+            }
+        }
+
         fun updateUI() {
             if (goal.isExpanded) {
                 tasksContainer.visibility = View.VISIBLE
@@ -157,6 +169,29 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
 
         updateUI()
         goalsContainer.addView(goalView)
+    }
+
+    private fun isGoalFullyCompleted(goal: Goal): Boolean {
+        for (task in goal.tasks) {
+            for (subtask in task.subtasks) {
+                if (!subtask.isCompleted) return false
+            }
+        }
+        return goal.tasks.isNotEmpty() // хотя бы одна подзадача должна быть
+    }
+
+    private fun showDeleteConfirmation(goal: Goal, goalView: View) {
+        AlertDialog.Builder(this)
+            .setTitle("Удалить цель?")
+            .setMessage("Вы уверены, что хотите удалить «${goal.title}»?\n\nВсе подзадачи выполнены.")
+            .setPositiveButton("Удалить") { _, _ ->
+                goals.remove(goal)
+                goalsContainer.removeView(goalView)
+                saveGoals()
+                updateOverallProgress()
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
     }
 
     override fun onGoalAdded(goal: Goal) {
@@ -184,6 +219,8 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
         animateProgress(overallProgressBar, progress)
         overallProgressText.text = "$completedSubtasks/$totalSubtasks"
     }
+
+    // ... (остальные функции: openSettings, addSubtaskDisplay, updateSubtaskStyle, animateProgress, loadSelectedEmoji, onResume, onPause — остаются без изменений)
 
     private fun openSettings() {
         val intent = Intent(this, SettingsActivity::class.java)
@@ -232,7 +269,6 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
         }
     }
 
-    // ===================== МАГАЗИН =====================
     private fun loadSelectedEmoji() {
         val json = prefs.getString("shop_data", null)
         val selectedId = if (json != null) {
