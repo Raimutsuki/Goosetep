@@ -21,7 +21,6 @@ import com.google.gson.reflect.TypeToken
 
 class MainActivity : AppCompatActivity(), OnGoalAddedListener {
 
-    // Views
     private lateinit var goalsContainer: LinearLayout
     private lateinit var overallProgressBar: ProgressBar
     private lateinit var overallProgressText: TextView
@@ -42,7 +41,6 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
 
         prefs = getSharedPreferences("app_prefs", MODE_PRIVATE)
 
-        // Инициализация View
         goalsContainer = findViewById(R.id.goalsContainer)
         overallProgressBar = findViewById(R.id.overallProgressBar)
         overallProgressText = findViewById(R.id.overallProgressText)
@@ -51,22 +49,16 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
         tvLevel = findViewById(R.id.tv_level)
         tvXp = findViewById(R.id.tv_xp)
 
-        val plusBut = findViewById<ImageView>(R.id.plusBut)
-
-        plusBut.setOnClickListener {
-            val dialog = AddGoalDialog()
-            dialog.show(supportFragmentManager, "AddGoalDialog")
+        findViewById<ImageView>(R.id.plusBut).setOnClickListener {
+            AddGoalDialog().show(supportFragmentManager, "AddGoalDialog")
         }
 
-        val btnShop = findViewById<Button>(R.id.btnShop)
-        btnShop.setOnClickListener {
-            val intent = Intent(this, ShopActivity::class.java)
-            startActivity(intent)
+        findViewById<Button>(R.id.btnShop).setOnClickListener {
+            startActivity(Intent(this, ShopActivity::class.java))
         }
 
-        val settingsButton = findViewById<ImageView>(R.id.btn_settings)
-        settingsButton.setOnClickListener {
-            openSettings()
+        findViewById<ImageView>(R.id.btn_settings).setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
         }
 
         loadProgress()
@@ -75,21 +67,15 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
         updateLevelUI()
     }
 
-    // ===================== ПРОГРЕСС ИГРОКА =====================
+    // ===================== ПРОГРЕСС =====================
     private fun loadProgress() {
-        val json = prefs.getString("player_progress", null)
-        if (json != null) {
-            try {
-                playerProgress = gson.fromJson(json, PlayerProgress::class.java)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+        prefs.getString("player_progress", null)?.let {
+            try { playerProgress = gson.fromJson(it, PlayerProgress::class.java) } catch (_: Exception) {}
         }
     }
 
     private fun saveProgress() {
-        val json = gson.toJson(playerProgress)
-        prefs.edit().putString("player_progress", json).apply()
+        prefs.edit().putString("player_progress", gson.toJson(playerProgress)).apply()
     }
 
     private fun addCoins(amount: Int) {
@@ -99,43 +85,82 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
 
     private fun updateLevelUI() {
         tvLevel.text = "Уровень ${playerProgress.level}"
-        val current = playerProgress.totalXP
         val needed = playerProgress.getXPForNextLevel()
-        val progress = if (needed > 0) (current * 100 / needed) else 0
-
+        val progress = if (needed > 0) (playerProgress.totalXP * 100 / needed) else 0
         levelProgressBar.progress = progress
-        tvXp.text = "$current / $needed XP"
+        tvXp.text = "${playerProgress.totalXP} / $needed XP"
     }
 
-    // ===================== ЦЕЛИ =====================
+    // ===================== НАГРАДЫ =====================
+    private fun giveSubtaskReward(subtask: Subtask) {
+        if (subtask.completionRewardGiven) return
+        subtask.completionRewardGiven = true
+
+        val levelUp = playerProgress.addXP(1)
+        Toast.makeText(this, "+1 XP", Toast.LENGTH_SHORT).show()
+
+        if (levelUp) {
+            addCoins(50)
+            Toast.makeText(this, "🎉 Новый уровень ${playerProgress.level}! 50 💰", Toast.LENGTH_LONG).show()
+        }
+        updateLevelUI()
+        saveProgress()
+    }
+
+    private fun giveTaskReward(task: Task) {
+        if (task.completionRewardGiven) return
+        task.completionRewardGiven = true
+
+        val levelUp = playerProgress.addXP(10)
+        Toast.makeText(this, "+10 XP", Toast.LENGTH_SHORT).show()
+
+        if (levelUp) {
+            addCoins(50)
+            Toast.makeText(this, "🎉 Новый уровень ${playerProgress.level}! 50 💰", Toast.LENGTH_LONG).show()
+        }
+        updateLevelUI()
+        saveProgress()
+    }
+
+    private fun giveGoalReward(goal: Goal) {
+        if (goal.completionRewardGiven) return
+        goal.completionRewardGiven = true
+
+        addCoins(5)
+        val levelUp = playerProgress.addXP(25)
+
+        Toast.makeText(this, "🏆 Цель выполнена! +25 XP", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "5 💰", Toast.LENGTH_SHORT).show()
+
+        if (levelUp) {
+            addCoins(50)
+            Toast.makeText(this, "🎉 Новый уровень ${playerProgress.level}! 50 💰", Toast.LENGTH_LONG).show()
+        }
+        updateLevelUI()
+        saveProgress()
+    }
+
     private fun loadGoals() {
-        val json = prefs.getString("goals", null)
-        if (json != null) {
+        prefs.getString("goals", null)?.let {
             try {
                 val type = object : TypeToken<MutableList<Goal>>() {}.type
-                val savedGoals: MutableList<Goal> = gson.fromJson(json, type)
+                val saved: MutableList<Goal> = gson.fromJson(it, type)
                 goals.clear()
-                goals.addAll(savedGoals)
-
-                goalsContainer.removeAllViews()
-                for (goal in goals) {
-                    addGoalToUI(goal)
-                }
-                updateOverallProgress()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+                goals.addAll(saved)
+            } catch (_: Exception) {}
         }
+
+        goalsContainer.removeAllViews()
+        goals.forEach { addGoalToUI(it) }
+        updateOverallProgress()
     }
 
     private fun saveGoals() {
-        val json = gson.toJson(goals)
-        prefs.edit().putString("goals", json).apply()
+        prefs.edit().putString("goals", gson.toJson(goals)).apply()
     }
 
     private fun addGoalToUI(goal: Goal) {
-        val goalView = LayoutInflater.from(this)
-            .inflate(R.layout.item_goal, goalsContainer, false)
+        val goalView = LayoutInflater.from(this).inflate(R.layout.item_goal, goalsContainer, false)
 
         val goalTitle = goalView.findViewById<TextView>(R.id.goalTitle)
         val expandIcon = goalView.findViewById<ImageView>(R.id.expandIcon)
@@ -147,14 +172,25 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
 
         goalTitle.text = goal.title
 
-        @SuppressLint("SetTextI18n")
         fun updateGoalProgress() {
             var total = 0
             var completed = 0
+
             for (task in goal.tasks) {
+                var taskTotal = 0
+                var taskCompleted = 0
+
                 for (subtask in task.subtasks) {
+                    taskTotal++
                     total++
-                    if (subtask.isCompleted) completed++
+                    if (subtask.isCompleted) {
+                        taskCompleted++
+                        completed++
+                    }
+                }
+
+                if (taskTotal > 0 && taskCompleted == taskTotal) {
+                    giveTaskReward(task)
                 }
             }
 
@@ -163,6 +199,10 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
             progressText.text = "$completed/$total"
 
             btnDelete.visibility = if (completed == total && total > 0) View.VISIBLE else View.GONE
+
+            if (completed == total && total > 0) {
+                giveGoalReward(goal)
+            }
 
             updateOverallProgress()
             saveGoals()
@@ -174,54 +214,35 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
             val taskView = LayoutInflater.from(this)
                 .inflate(R.layout.item_task_display, tasksContainer, false)
 
-            val taskTitle = taskView.findViewById<TextView>(R.id.taskTitle)
+            taskView.findViewById<TextView>(R.id.taskTitle).text = task.title
+
             val subtasksContainer = taskView.findViewById<LinearLayout>(R.id.subtasksContainer)
-
-            taskTitle.text = task.title
-
             for (subtask in task.subtasks) {
-                addSubtaskDisplay(subtasksContainer, subtask) { _ ->
+                addSubtaskDisplay(subtasksContainer, subtask) {
                     updateGoalProgress()
                 }
             }
-
             tasksContainer.addView(taskView)
         }
 
         updateGoalProgress()
 
         btnDelete.setOnClickListener {
-            if (isGoalFullyCompleted(goal)) {
-                showDeleteConfirmation(goal, goalView)
-            }
-        }
-
-        fun updateUI() {
-            if (goal.isExpanded) {
-                tasksContainer.visibility = View.VISIBLE
-                expandIcon.animate().rotation(0f).setDuration(200).start()
-            } else {
-                tasksContainer.visibility = View.GONE
-                expandIcon.animate().rotation(-90f).setDuration(200).start()
-            }
+            if (isGoalFullyCompleted(goal)) showDeleteConfirmation(goal, goalView)
         }
 
         goalHeader.setOnClickListener {
             goal.isExpanded = !goal.isExpanded
-            updateUI()
+            tasksContainer.visibility = if (goal.isExpanded) View.VISIBLE else View.GONE
+            expandIcon.animate().rotation(if (goal.isExpanded) 0f else -90f).setDuration(200).start()
         }
 
-        updateUI()
+        tasksContainer.visibility = if (goal.isExpanded) View.VISIBLE else View.GONE
         goalsContainer.addView(goalView)
     }
 
     private fun isGoalFullyCompleted(goal: Goal): Boolean {
-        for (task in goal.tasks) {
-            for (subtask in task.subtasks) {
-                if (!subtask.isCompleted) return false
-            }
-        }
-        return goal.tasks.isNotEmpty()
+        return goal.tasks.all { task -> task.subtasks.all { it.isCompleted } } && goal.tasks.isNotEmpty()
     }
 
     private fun showDeleteConfirmation(goal: Goal, goalView: View) {
@@ -245,23 +266,20 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
         updateOverallProgress()
     }
 
-    @SuppressLint("SetTextI18n")
     private fun updateOverallProgress() {
-        var totalSubtasks = 0
-        var completedSubtasks = 0
-
+        var total = 0
+        var completed = 0
         for (goal in goals) {
             for (task in goal.tasks) {
-                for (subtask in task.subtasks) {
-                    totalSubtasks++
-                    if (subtask.isCompleted) completedSubtasks++
+                for (sub in task.subtasks) {
+                    total++
+                    if (sub.isCompleted) completed++
                 }
             }
         }
-
-        val progress = if (totalSubtasks > 0) (completedSubtasks * 100 / totalSubtasks) else 0
+        val progress = if (total > 0) (completed * 100 / total) else 0
         animateProgress(overallProgressBar, progress)
-        overallProgressText.text = "$completedSubtasks/$totalSubtasks"
+        overallProgressText.text = "$completed/$total"
     }
 
     private fun addSubtaskDisplay(
@@ -269,15 +287,14 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
         subtask: Subtask,
         onCheckedChangeListener: ((Boolean) -> Unit)? = null
     ) {
-        val inflater = LayoutInflater.from(this)
-        val subtaskView = inflater.inflate(R.layout.item_subtask_display, container, false)
+        val subtaskView = LayoutInflater.from(this)
+            .inflate(R.layout.item_subtask_display, container, false)
 
         val checkbox = subtaskView.findViewById<CheckBox>(R.id.subtaskCheckbox)
         val title = subtaskView.findViewById<TextView>(R.id.subtaskTitle)
 
         checkbox.isChecked = subtask.isCompleted
         title.text = subtask.title
-
         updateSubtaskStyle(title, subtask.isCompleted)
 
         checkbox.setOnCheckedChangeListener { _, isChecked ->
@@ -285,18 +302,8 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
             subtask.isCompleted = isChecked
             updateSubtaskStyle(title, isChecked)
 
-            if (isChecked && !wasCompleted) {
-                val levelUp = playerProgress.addXP(1)
-                addCoins(1)
-
-                if (levelUp) {
-                    addCoins(50)
-                    Toast.makeText(this, "🎉 Новый уровень ${playerProgress.level}! +50 монет", Toast.LENGTH_LONG).show()
-                } else {
-                    Toast.makeText(this, "+1 XP +1 💰", Toast.LENGTH_SHORT).show()
-                }
-                updateLevelUI()
-                saveProgress()
+            if (isChecked && !wasCompleted && !subtask.completionRewardGiven) {
+                giveSubtaskReward(subtask)
             }
 
             onCheckedChangeListener?.invoke(isChecked)
@@ -327,30 +334,15 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
         val selectedId = if (json != null) {
             try {
                 val type = object : TypeToken<ShopData>() {}.type
-                val data: ShopData = gson.fromJson(json, type)
-                data.selectedId
-            } catch (e: Exception) {
-                1
-            }
+                gson.fromJson<ShopData>(json, type).selectedId
+            } catch (_: Exception) { 1 }
         } else 1
 
-        val emoji = when (selectedId) {
-            1 -> "🪿"
-            2 -> "🐸"
-            4 -> "🐱"
-            6 -> "🐦"
-            8 -> "🐧"
-            10 -> "🐭"
-            14 -> "💩"
-            15 -> "🦖"
+        selectedEmojiView.text = when (selectedId) {
+            1 -> "🪿"; 2 -> "🐸"; 4 -> "🐱"; 6 -> "🐦"
+            8 -> "🐧"; 10 -> "🐭"; 14 -> "💩"; 15 -> "🦖"
             else -> "🪿"
         }
-        selectedEmojiView.text = emoji
-    }
-
-    private fun openSettings() {
-        val intent = Intent(this, SettingsActivity::class.java)
-        startActivity(intent)
     }
 
     override fun onResume() {

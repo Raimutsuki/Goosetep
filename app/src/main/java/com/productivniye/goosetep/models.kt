@@ -4,7 +4,8 @@ package com.productivniye.goosetep
 data class Subtask(
     val id: Int,
     var title: String,
-    var isCompleted: Boolean = false
+    var isCompleted: Boolean = false,
+    var completionRewardGiven: Boolean = false
 )
 
 // Задача (содержит список подзадач)
@@ -44,7 +45,10 @@ data class PlayerProgress(
 
     fun addXP(amount: Int): Boolean {
         totalXP += amount
-        return if (totalXP >= getXPForNextLevel()) {
+        val needed = getXPForNextLevel()
+
+        return if (totalXP >= needed) {
+            totalXP -= needed
             level++
             true
         } else false
