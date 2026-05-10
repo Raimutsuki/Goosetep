@@ -1,5 +1,4 @@
 package com.productivniye.goosetep
-
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.SharedPreferences
@@ -18,9 +17,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-
 class MainActivity : AppCompatActivity(), OnGoalAddedListener {
-
     private lateinit var goalsContainer: LinearLayout
     private lateinit var overallProgressBar: ProgressBar
     private lateinit var overallProgressText: TextView
@@ -348,6 +345,8 @@ class MainActivity : AppCompatActivity(), OnGoalAddedListener {
     override fun onResume() {
         super.onResume()
         loadSelectedEmoji()
+        loadProgress()
+        updateLevelUI()
     }
 
     override fun onPause() {

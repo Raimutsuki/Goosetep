@@ -41,7 +41,7 @@ class ShopActivity : AppCompatActivity() {
 
         prefs = getSharedPreferences("app_prefs", MODE_PRIVATE)
 
-        loadCoins()           // ← Загружаем из player_progress
+        loadCoins()
         loadShopData()
 
         findViewById<TextView>(R.id.tv_coins).text = coins.toString()
@@ -56,8 +56,27 @@ class ShopActivity : AppCompatActivity() {
         shopItems.add(ShopItem(14, "Какашка", "💩", 5))
         shopItems.add(ShopItem(15, "Динозавр", "🦖", 70))
 
+        // Применяем сохранённые owned и selected
+        val savedOwnedIds = getOwnedIds()
+        val savedSelectedId = getSelectedId()
+
+        shopItems.forEach { item ->
+            if (savedOwnedIds.contains(item.id)) {
+                item.isOwned = true
+                item.isSelected = (item.id == savedSelectedId)
+            }
+        }
+
+        // Распределяем по спискам
+        myItems.clear()
         myItems.addAll(shopItems.filter { it.isOwned })
+
         shopItems.removeAll { it.isOwned }
+
+        // Если ничего не выбрано — выбираем первого из моих
+        if (myItems.none { it.isSelected }) {
+            myItems.firstOrNull()?.isSelected = true
+        }
 
         // Адаптеры
         myAdapter = MyItemsAdapter(myItems) { selected ->
@@ -98,35 +117,38 @@ class ShopActivity : AppCompatActivity() {
 
     private fun saveCoins() {
         val json = prefs.getString("player_progress", null)
-        if (json != null) {
+        val progress = if (json != null) {
             try {
-                var progress = gson.fromJson(json, PlayerProgress::class.java)
-                progress.coins = coins
-                prefs.edit().putString("player_progress", gson.toJson(progress)).apply()
+                gson.fromJson(json, PlayerProgress::class.java) ?: PlayerProgress()
             } catch (_: Exception) {
-                // Если данных нет — создаём новые
-                val progress = PlayerProgress(coins = coins)
-                prefs.edit().putString("player_progress", gson.toJson(progress)).apply()
+                PlayerProgress()
             }
-        } else {
-            val progress = PlayerProgress(coins = coins)
-            prefs.edit().putString("player_progress", gson.toJson(progress)).apply()
-        }
+        } else PlayerProgress()
+
+        progress.coins = coins
+        prefs.edit().putString("player_progress", gson.toJson(progress)).apply()
+    }
+
+    private fun getOwnedIds(): Set<Int> {
+        val json = prefs.getString("shop_data", null) ?: return setOf(1)
+        return try {
+            val type = object : TypeToken<ShopData>() {}.type
+            val data: ShopData = gson.fromJson(json, type)
+            data.ownedIds
+        } catch (_: Exception) { setOf(1) }
+    }
+
+    private fun getSelectedId(): Int {
+        val json = prefs.getString("shop_data", null) ?: return 1
+        return try {
+            val type = object : TypeToken<ShopData>() {}.type
+            val data: ShopData = gson.fromJson(json, type)
+            data.selectedId
+        } catch (_: Exception) { 1 }
     }
 
     private fun loadShopData() {
-        val json = prefs.getString("shop_data", null)
-        if (json != null) {
-            try {
-                val type = object : TypeToken<ShopData>() {}.type
-                val data: ShopData = gson.fromJson(json, type)
-
-                val ownedIds = data.ownedIds
-                shopItems.forEach { item ->
-                    if (ownedIds.contains(item.id)) item.isOwned = true
-                }
-            } catch (_: Exception) {}
-        }
+        // Загрузка происходит через getOwnedIds() и getSelectedId()
     }
 
     private fun saveShopData() {
@@ -146,6 +168,7 @@ class ShopActivity : AppCompatActivity() {
                 coins -= item.price
                 item.isOwned = true
 
+                // Сбрасываем выбор у всех
                 myItems.forEach { it.isSelected = false }
                 item.isSelected = true
 
@@ -157,7 +180,7 @@ class ShopActivity : AppCompatActivity() {
 
                 findViewById<TextView>(R.id.tv_coins).text = coins.toString()
 
-                saveCoins()      // ← Важно!
+                saveCoins()
                 saveShopData()
 
                 Toast.makeText(this, "✅ Куплено и выбрано!", Toast.LENGTH_SHORT).show()
@@ -172,7 +195,7 @@ class ShopActivity : AppCompatActivity() {
         saveShopData()
     }
 
-    // ===================== АДАПТЕРЫ (остаются без изменений) =====================
+    // ===================== АДАПТЕРЫ =====================
     class MyItemsAdapter(
         private val items: MutableList<ShopItem>,
         private val onSelect: (ShopItem) -> Unit
